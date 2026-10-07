@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulgadas a mm</title>
+<meta name="theme-color" content="#14232B">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --ink: #14232B;
+    --paper: #E9EDEF;
+    --steel: #6B7B84;
+    --tape: #F5B800;
+    --white: #FFFFFF;
+    --err: #B3261E;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Bahnschrift", "DIN Alternate", "Segoe UI", system-ui, sans-serif;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+  }
+  main {
+    width: 100%;
+    max-width: 440px;
+    background: var(--white);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { margin: 0; font-size: 1.15rem; font-weight: 600; letter-spacing: .02em; }
+  #swap {
+    font: inherit;
+    font-size: .9rem;
+    background: var(--tape);
+    color: var(--ink);
+    border: 0;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #swap:hover { filter: brightness(1.05); }
+  .body { padding: 22px 20px 8px; }
+  label { display: block; font-size: .95rem; color: var(--steel); margin-bottom: 6px; }
+  .field { position: relative; }
+  input[type="text"] {
+    width: 100%;
+    font: inherit;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid transparent;
+    border-radius: 4px;
+    padding: 10px 56px 10px 14px;
+  }
+  input[type="text"]:focus { outline: none; border-color: var(--ink); }
+  input.bad { border-color: var(--err); }
+  .unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; color: var(--steel); pointer-events: none; }
+  .hint { font-size: .85rem; color: var(--steel); margin: 8px 0 0; min-height: 1.2em; }
+  .hint.bad { color: var(--err); }
+
+  .result { margin-top: 18px; background: var(--tape); }
+  .ruler {
+    height: 22px;
+    background:
+      repeating-linear-gradient(90deg, var(--ink) 0 1.5px, transparent 1.5px 40px) bottom/100% 22px no-repeat,
+      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 20px) bottom/100% 13px no-repeat,
+      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 5px) bottom/100% 6px no-repeat;
+  }
+  .result-inner { padding: 12px 20px 18px; }
+  .result-label { font-size: .95rem; color: var(--ink); opacity: .75; }
+  .result-value {
+    font-size: clamp(2.4rem, 12vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    word-break: break-all;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-value small { font-size: 1.3rem; font-weight: 600; margin-left: 6px; }
+  .extra { font-size: 1rem; margin-top: 4px; min-height: 1.4em; }
+  .actions { padding: 14px 20px 20px; display: flex; gap: 10px; align-items: center; }
+  #copy {
+    font: inherit;
+    font-weight: 600;
+    background: var(--ink);
+    color: var(--paper);
+    border: 0;
+    border-radius: 4px;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+  #copy:disabled { opacity: .35; cursor: default; }
+  .decimals { margin-left: auto; font-size: .9rem; color: var(--steel); display: flex; align-items: center; gap: 6px; }
+  select { font: inherit; font-size: .9rem; padding: 6px; border: 1px solid var(--steel); border-radius: 4px; background: var(--white); color: var(--ink); }
+  button:focus-visible, select:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">Pulgadas a milímetros</h1>
+    <button id="swap" type="button" aria-label="Invertir conversión">⇄ Invertir</button>
+  </header>
+
+  <div class="body">
+    <label for="entrada" id="lbl">Pulgadas</label>
+    <div class="field">
+      <input id="entrada" type="text" inputmode="text" autocomplete="off" autofocus placeholder="0" aria-describedby="hint">
+      <span class="unit" id="unitIn">in</span>
+    </div>
+    <p class="hint" id="hint">Acepta decimales (3.5) y fracciones (3 1/2 o 3-1/2).</p>
+  </div>
+
+  <div class="result" aria-live="polite">
+    <div class="ruler" aria-hidden="true"></div>
+    <div class="result-inner">
+      <div class="result-label" id="resLbl">Milímetros</div>
+      <div class="result-value"><span id="valor">0</span><small id="unitOut">mm</small></div>
+      <div class="extra" id="extra"></div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="copy" type="button" disabled>Copiar resultado</button>
+    <div class="decimals">
+      <label for="dec" style="margin:0">Decimales</label>
+      <select id="dec">
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var MM = 25.4;
+  var mode = "in2mm"; // o "mm2in"
+  var $ = function (id) { return document.getElementById(id); };
+  var entrada = $("entrada"), valor = $("valor"), extra = $("extra"), hint = $("hint"),
+      copyBtn = $("copy"), dec = $("dec");
+  var lastText = "";
+
+  // Convierte "3.5", "3,5", "1/2", "3 1/2", "3-1/2" en número. Devuelve null si es inválido.
+  function parse(raw) {
+    var s = raw.trim().replace(",", ".");
+    if (s === "") return { empty: true };
+    var m;
+    if ((m = s.match(/^(\d+)[\s-]+(\d+)\s*\/\s*(\d+)$/))) {
+      if (+m[3] === 0) return null;
+      return { v: +m[1] + (+m[2]) / (+m[3]) };
+    }
+    if ((m = s.match(/^(\d+)\s*\/\s*(\d+)$/))) {
+      if (+m[2] === 0) return null;
+      return { v: (+m[1]) / (+m[2]) };
+    }
+    if (/^\d*\.?\d+$/.test(s) || /^\d+\.$/.test(s)) return { v: parseFloat(s) };
+    return null;
+  }
+
+  function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+
+  // Pulgadas decimales a fracción mixta, al 1/16 más cercano
+  function toFraction(inches) {
+    var den = 16;
+    var total = Math.round(inches * den);
+    var whole = Math.floor(total / den);
+    var num = total - whole * den;
+    if (num === 0) return whole + '"';
+    var g = gcd(num, den);
+    num /= g; var d = den / g;
+    return (whole > 0 ? whole + " " : "") + num + "/" + d + '"';
+  }
+
+  function fmt(n, d) {
+    return n.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: d });
+  }
+
+  function render() {
+    var p = parse(entrada.value);
+    var d = +dec.value;
+    entrada.classList.remove("bad");
+    hint.classList.remove("bad");
+    if (p === null) {
+      entrada.classList.add("bad");
+      hint.classList.add("bad");
+      hint.textContent = "Escribe un número, por ejemplo 3.5 o 3 1/2.";
+      valor.textContent = "—"; extra.textContent = ""; copyBtn.disabled = true; lastText = "";
+      return;
+    }
+    hint.textContent = "Acepta decimales (3.5) y fracciones (3 1/2 o 3-1/2).";
+    if (p.empty) { valor.textContent = "0"; extra.textContent = ""; copyBtn.disabled = true; lastText = ""; return; }
+
+    if (mode === "in2mm") {
+      var mm = p.v * MM;
+      valor.textContent = fmt(mm, d);
+      lastText = mm.toFixed(d);
+      extra.textContent = "";
+    } else {
+      var inch = p.v / MM;
+      valor.textContent = fmt(inch, Math.max(d, 3));
+      lastText = inch.toFixed(Math.max(d, 3));
+      extra.textContent = "≈ " + toFraction(inch) + " (al 1/16 más cercano)";
+    }
+    copyBtn.disabled = false;
+  }
+
+  function applyMode() {
+    var a = mode === "in2mm";
+    $("title").textContent = a ? "Pulgadas a milímetros" : "Milímetros a pulgadas";
+    $("lbl").textContent = a ? "Pulgadas" : "Milímetros";
+    $("unitIn").textContent = a ? "in" : "mm";
+    $("resLbl").textContent = a ? "Milímetros" : "Pulgadas";
+    $("unitOut").textContent = a ? "mm" : "in";
+    render();
+  }
+
+  $("swap").addEventListener("click", function () {
+    // Pasa el resultado actual como nueva entrada
+    var keep = lastText;
+    mode = mode === "in2mm" ? "mm2in" : "in2mm";
+    entrada.value = keep ? String(parseFloat(keep)) : "";
+    applyMode();
+    entrada.focus();
+  });
+
+  entrada.addEventListener("input", render);
+  dec.addEventListener("change", render);
+
+  copyBtn.addEventListener("click", function () {
+    if (!lastText) return;
+    var done = function () {
+      copyBtn.textContent = "Copiado";
+      setTimeout(function () { copyBtn.textContent = "Copiar resultado"; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lastText).then(done, function () {});
+    }
+  });
+
+  applyMode();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
