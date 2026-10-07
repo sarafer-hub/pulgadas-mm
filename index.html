@@ -18,7 +18,7 @@
     --err: #B3261E;
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  html, body { min-height: 100%; }
   body {
     margin: 0;
     background: var(--paper);
@@ -58,6 +58,24 @@
     font-weight: 600;
   }
   #swap:hover { filter: brightness(1.05); }
+
+  .tabs { display: flex; background: var(--paper); border-bottom: 2px solid var(--ink); }
+  .tab {
+    flex: 1;
+    font: inherit;
+    font-weight: 600;
+    font-size: .95rem;
+    padding: 12px 8px;
+    background: transparent;
+    color: var(--steel);
+    border: 0;
+    border-bottom: 4px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); background: var(--white); border-bottom-color: var(--tape); }
+
+  .view[hidden] { display: none; }
   .body { padding: 22px 20px 8px; }
   label { display: block; font-size: .95rem; color: var(--steel); margin-bottom: 6px; }
   .field { position: relative; }
@@ -97,8 +115,8 @@
   }
   .result-value small { font-size: 1.3rem; font-weight: 600; margin-left: 6px; }
   .extra { font-size: 1rem; margin-top: 4px; min-height: 1.4em; }
-  .actions { padding: 14px 20px 20px; display: flex; gap: 10px; align-items: center; }
-  #copy {
+  .actions { padding: 14px 20px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
     font: inherit;
     font-weight: 600;
     background: var(--ink);
@@ -108,10 +126,27 @@
     padding: 10px 16px;
     cursor: pointer;
   }
-  #copy:disabled { opacity: .35; cursor: default; }
+  .btn.light { background: var(--paper); color: var(--ink); }
+  .btn:disabled { opacity: .35; cursor: default; }
   .decimals { margin-left: auto; font-size: .9rem; color: var(--steel); display: flex; align-items: center; gap: 6px; }
+  .decimals label { margin: 0; }
   select { font: inherit; font-size: .9rem; padding: 6px; border: 1px solid var(--steel); border-radius: 4px; background: var(--white); color: var(--ink); }
   button:focus-visible, select:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  /* Pestaña Operaciones */
+  .rows { display: grid; gap: 8px; }
+  .row { display: grid; grid-template-columns: 64px 1fr 40px; gap: 8px; align-items: center; }
+  .row .inicio { font-size: .9rem; color: var(--steel); text-align: center; }
+  .row select { font-size: 1.4rem; font-weight: 600; height: 52px; padding: 0 6px; text-align: center; border: 2px solid var(--paper); background: var(--paper); border-radius: 4px; width: 100%; }
+  .row input[type="text"] { font-size: 1.4rem; padding: 10px 12px; }
+  .row .del { font: inherit; height: 40px; width: 40px; border: 0; background: transparent; color: var(--steel); font-size: 1.2rem; cursor: pointer; border-radius: 4px; }
+  .row .del:hover { background: var(--paper); color: var(--err); }
+  .row-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .res-block + .res-block { margin-top: 12px; padding-top: 12px; border-top: 2px solid rgba(20, 35, 43, .25); }
+  .res-block .result-value { font-size: clamp(2rem, 10vw, 2.8rem); }
+  .res-block .extra { font-size: .9rem; min-height: 1.2em; }
+  .actions .frac { display: flex; align-items: center; gap: 6px; font-size: .9rem; color: var(--steel); }
+  .actions .frac label { margin: 0; }
 </style>
 </head>
 <body>
@@ -121,37 +156,96 @@
     <button id="swap" type="button" aria-label="Invertir conversión">⇄ Invertir</button>
   </header>
 
-  <div class="body">
-    <label for="entrada" id="lbl">Pulgadas</label>
-    <div class="field">
-      <input id="entrada" type="text" inputmode="text" autocomplete="off" autofocus placeholder="0" aria-describedby="hint">
-      <span class="unit" id="unitIn">in</span>
-    </div>
-    <p class="hint" id="hint">Acepta decimales (3.5) y fracciones (3 1/2 o 3-1/2).</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabConv" role="tab" aria-selected="true" aria-controls="vistaConv" type="button">Convertir</button>
+    <button class="tab" id="tabOps" role="tab" aria-selected="false" aria-controls="vistaOps" type="button">Operaciones</button>
   </div>
 
-  <div class="result" aria-live="polite">
-    <div class="ruler" aria-hidden="true"></div>
-    <div class="result-inner">
-      <div class="result-label" id="resLbl">Milímetros</div>
-      <div class="result-value"><span id="valor">0</span><small id="unitOut">mm</small></div>
-      <div class="extra" id="extra"></div>
+  <!-- ===== Convertir ===== -->
+  <section class="view" id="vistaConv" role="tabpanel" aria-labelledby="tabConv">
+    <div class="body">
+      <label for="entrada" id="lbl">Pulgadas</label>
+      <div class="field">
+        <input id="entrada" type="text" inputmode="text" autocomplete="off" placeholder="0" aria-describedby="hint">
+        <span class="unit" id="unitIn">in</span>
+      </div>
+      <p class="hint" id="hint">Acepta decimales (3.5) y fracciones (3 1/2 o 3-1/2).</p>
     </div>
-  </div>
 
-  <div class="actions">
-    <button id="copy" type="button" disabled>Copiar resultado</button>
-    <div class="decimals">
-      <label for="dec" style="margin:0">Decimales</label>
-      <select id="dec">
-        <option value="0">0</option>
-        <option value="1">1</option>
-        <option value="2" selected>2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-      </select>
+    <div class="result" aria-live="polite">
+      <div class="ruler" aria-hidden="true"></div>
+      <div class="result-inner">
+        <div class="result-label" id="resLbl">Milímetros</div>
+        <div class="result-value"><span id="valor">0</span><small id="unitOut">mm</small></div>
+        <div class="extra" id="extra"></div>
+      </div>
     </div>
-  </div>
+
+    <div class="actions">
+      <button id="copy" class="btn" type="button" disabled>Copiar resultado</button>
+      <div class="decimals">
+        <label for="dec">Decimales</label>
+        <select id="dec">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Operaciones ===== -->
+  <section class="view" id="vistaOps" role="tabpanel" aria-labelledby="tabOps" hidden>
+    <div class="body">
+      <div class="rows" id="rows"></div>
+      <div class="row-actions">
+        <button id="addRow" class="btn" type="button">+ Agregar línea</button>
+        <button id="clearRows" class="btn light" type="button">Limpiar</button>
+      </div>
+      <p class="hint" id="hint2">Se calcula en orden, de arriba hacia abajo. × y ÷ usan un número normal, sin pulgadas.</p>
+    </div>
+
+    <div class="result" aria-live="polite">
+      <div class="ruler" aria-hidden="true"></div>
+      <div class="result-inner">
+        <div class="res-block">
+          <div class="result-label">Resultado en pulgadas</div>
+          <div class="result-value"><span id="sFrac">0"</span></div>
+          <div class="extra"><span id="sDec"></span> <span id="sNote"></span></div>
+        </div>
+        <div class="res-block">
+          <div class="result-label">Resultado en milímetros</div>
+          <div class="result-value"><span id="sMm">0</span><small>mm</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="copyIn" class="btn" type="button" disabled>Copiar pulgadas</button>
+      <button id="copyMm" class="btn" type="button" disabled>Copiar mm</button>
+      <div class="frac">
+        <label for="fracSel">Fracción al</label>
+        <select id="fracSel">
+          <option value="8">1/8</option>
+          <option value="16" selected>1/16</option>
+          <option value="32">1/32</option>
+          <option value="64">1/64</option>
+        </select>
+      </div>
+      <div class="decimals">
+        <label for="dec2">Decimales</label>
+        <select id="dec2">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -159,11 +253,10 @@
   var MM = 25.4;
   var mode = "in2mm"; // o "mm2in"
   var $ = function (id) { return document.getElementById(id); };
-  var entrada = $("entrada"), valor = $("valor"), extra = $("extra"), hint = $("hint"),
-      copyBtn = $("copy"), dec = $("dec");
-  var lastText = "";
 
-  // Convierte "3.5", "3,5", "1/2", "3 1/2", "3-1/2" en número. Devuelve null si es inválido.
+  // ---------- Utilidades compartidas ----------
+
+  // Convierte "3.5", "3,5", "1/2", "3 1/2", "3-1/2" en número. null si es inválido.
   function parse(raw) {
     var s = raw.trim().replace(",", ".");
     if (s === "") return { empty: true };
@@ -182,23 +275,62 @@
 
   function gcd(a, b) { return b ? gcd(b, a % b) : a; }
 
-  // Pulgadas decimales a fracción mixta, al 1/16 más cercano
-  function toFraction(inches) {
-    var den = 16;
-    var total = Math.round(inches * den);
+  // Pulgadas decimales a fracción mixta, al 1/den más cercano. Acepta negativos.
+  function toFraction(inches, den) {
+    var sign = inches < 0 ? "−" : "";
+    var a = Math.abs(inches);
+    var total = Math.round(a * den);
+    if (total === 0) return '0"';
     var whole = Math.floor(total / den);
     var num = total - whole * den;
-    if (num === 0) return whole + '"';
+    if (num === 0) return sign + whole + '"';
     var g = gcd(num, den);
-    num /= g; var d = den / g;
-    return (whole > 0 ? whole + " " : "") + num + "/" + d + '"';
+    num /= g;
+    var d = den / g;
+    return sign + (whole > 0 ? whole + " " : "") + num + "/" + d + '"';
   }
 
   function fmt(n, d) {
     return n.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: d });
   }
 
-  function render() {
+  function copyText(btn, text, label) {
+    if (!text) return;
+    var done = function () {
+      btn.textContent = "Copiado";
+      setTimeout(function () { btn.textContent = label; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () {});
+    }
+  }
+
+  // ---------- Pestañas ----------
+  var tabConv = $("tabConv"), tabOps = $("tabOps"),
+      vistaConv = $("vistaConv"), vistaOps = $("vistaOps");
+
+  function showTab(which) {
+    var conv = which === "conv";
+    tabConv.setAttribute("aria-selected", conv ? "true" : "false");
+    tabOps.setAttribute("aria-selected", conv ? "false" : "true");
+    vistaConv.hidden = !conv;
+    vistaOps.hidden = conv;
+    $("swap").style.display = conv ? "" : "none";
+    $("title").textContent = conv
+      ? (mode === "in2mm" ? "Pulgadas a milímetros" : "Milímetros a pulgadas")
+      : "Operaciones con pulgadas";
+    if (conv) entrada.focus();
+    else if (rows.length) rows[0].inp.focus();
+  }
+  tabConv.addEventListener("click", function () { showTab("conv"); });
+  tabOps.addEventListener("click", function () { showTab("ops"); });
+
+  // ---------- Convertir ----------
+  var entrada = $("entrada"), valor = $("valor"), extra = $("extra"), hint = $("hint"),
+      copyBtn = $("copy"), dec = $("dec"), dec2 = $("dec2");
+  var lastText = "";
+
+  function renderConv() {
     var p = parse(entrada.value);
     var d = +dec.value;
     entrada.classList.remove("bad");
@@ -222,7 +354,7 @@
       var inch = p.v / MM;
       valor.textContent = fmt(inch, Math.max(d, 3));
       lastText = inch.toFixed(Math.max(d, 3));
-      extra.textContent = "≈ " + toFraction(inch) + " (al 1/16 más cercano)";
+      extra.textContent = "≈ " + toFraction(inch, 16) + " (al 1/16 más cercano)";
     }
     copyBtn.disabled = false;
   }
@@ -234,11 +366,10 @@
     $("unitIn").textContent = a ? "in" : "mm";
     $("resLbl").textContent = a ? "Milímetros" : "Pulgadas";
     $("unitOut").textContent = a ? "mm" : "in";
-    render();
+    renderConv();
   }
 
   $("swap").addEventListener("click", function () {
-    // Pasa el resultado actual como nueva entrada
     var keep = lastText;
     mode = mode === "in2mm" ? "mm2in" : "in2mm";
     entrada.value = keep ? String(parseFloat(keep)) : "";
@@ -246,21 +377,164 @@
     entrada.focus();
   });
 
-  entrada.addEventListener("input", render);
-  dec.addEventListener("change", render);
+  entrada.addEventListener("input", renderConv);
+  copyBtn.addEventListener("click", function () { copyText(copyBtn, lastText, "Copiar resultado"); });
 
-  copyBtn.addEventListener("click", function () {
-    if (!lastText) return;
-    var done = function () {
-      copyBtn.textContent = "Copiado";
-      setTimeout(function () { copyBtn.textContent = "Copiar resultado"; }, 1200);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(lastText).then(done, function () {});
+  // ---------- Operaciones ----------
+  var rowsEl = $("rows"), hint2 = $("hint2"), fracSel = $("fracSel");
+  var copyIn = $("copyIn"), copyMm = $("copyMm");
+  var rows = [];
+  var lastIn = "", lastMm = "";
+  var HINT2 = "Se calcula en orden, de arriba hacia abajo. × y ÷ usan un número normal, sin pulgadas.";
+
+  function addRow(focus) {
+    var idx = rows.length;
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var opcell, opSel = null;
+    if (idx === 0) {
+      opcell = document.createElement("div");
+      opcell.className = "inicio";
+      opcell.textContent = "Inicio";
+    } else {
+      opSel = document.createElement("select");
+      opSel.setAttribute("aria-label", "Operación");
+      [["+", "+"], ["-", "−"], ["*", "×"], ["/", "÷"]].forEach(function (o) {
+        var op = document.createElement("option");
+        op.value = o[0]; op.textContent = o[1];
+        opSel.appendChild(op);
+      });
+      opSel.addEventListener("change", renderOps);
+      opcell = opSel;
     }
-  });
 
+    var inp = document.createElement("input");
+    inp.type = "text";
+    inp.setAttribute("inputmode", "text");
+    inp.setAttribute("autocomplete", "off");
+    inp.placeholder = idx === 0 ? "ej. 12 1/2" : "ej. 3 3/4";
+    inp.setAttribute("aria-label", idx === 0 ? "Medida inicial" : "Medida " + (idx + 1));
+    inp.addEventListener("input", renderOps);
+
+    var obj = { el: row, op: opSel, inp: inp };
+
+    inp.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      var i = rows.indexOf(obj);
+      if (i === rows.length - 1) addRow(true);
+      else rows[i + 1].inp.focus();
+    });
+
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "del";
+    del.setAttribute("aria-label", "Quitar línea");
+    del.textContent = "✕";
+    if (idx === 0) del.style.visibility = "hidden";
+    del.addEventListener("click", function () {
+      var i = rows.indexOf(obj);
+      if (i < 1) return;
+      rows.splice(i, 1);
+      row.remove();
+      renderOps();
+    });
+
+    row.appendChild(opcell);
+    row.appendChild(inp);
+    row.appendChild(del);
+    rowsEl.appendChild(row);
+    rows.push(obj);
+    if (focus) inp.focus();
+  }
+
+  function setOpsOutput(frac, dec4, note, mm) {
+    $("sFrac").textContent = frac;
+    $("sDec").textContent = dec4;
+    $("sNote").textContent = note;
+    $("sMm").textContent = mm;
+  }
+
+  function renderOps() {
+    var d = +dec2.value, den = +fracSel.value;
+    hint2.classList.remove("bad");
+    hint2.textContent = HINT2;
+
+    var acc = 0, any = false, bad = false;
+    rows.forEach(function (r, i) {
+      r.inp.classList.remove("bad");
+      var p = parse(r.inp.value);
+      if (p && p.empty) return;
+      if (p === null) {
+        r.inp.classList.add("bad");
+        if (!bad) { hint2.textContent = "Revisa la línea " + (i + 1) + ": escribe un número como 3.5 o 3 1/2."; hint2.classList.add("bad"); }
+        bad = true;
+        return;
+      }
+      any = true;
+      if (i === 0) { acc = p.v; return; }
+      var op = r.op.value;
+      if (op === "+") acc += p.v;
+      else if (op === "-") acc -= p.v;
+      else if (op === "*") acc *= p.v;
+      else if (op === "/") {
+        if (p.v === 0) {
+          r.inp.classList.add("bad");
+          if (!bad) { hint2.textContent = "No se puede dividir entre 0."; hint2.classList.add("bad"); }
+          bad = true;
+        } else acc /= p.v;
+      }
+    });
+
+    if (bad) {
+      setOpsOutput("—", "", "", "—");
+      copyIn.disabled = true; copyMm.disabled = true; lastIn = ""; lastMm = "";
+      return;
+    }
+    if (!any) {
+      setOpsOutput('0"', "", "", "0");
+      copyIn.disabled = true; copyMm.disabled = true; lastIn = ""; lastMm = "";
+      return;
+    }
+
+    var frac = toFraction(acc, den);
+    var exact = Math.abs(Math.abs(acc) * den - Math.round(Math.abs(acc) * den)) < 1e-9;
+    var mm = acc * MM;
+    setOpsOutput(
+      frac,
+      fmt(acc, 4) + " in",
+      exact ? "" : "(redondeado al 1/" + den + " más cercano)",
+      fmt(mm, d)
+    );
+    lastIn = frac;
+    lastMm = mm.toFixed(d);
+    copyIn.disabled = false;
+    copyMm.disabled = false;
+  }
+
+  $("addRow").addEventListener("click", function () { addRow(true); });
+  $("clearRows").addEventListener("click", function () {
+    while (rows.length) { rows.pop().el.remove(); }
+    addRow(false); addRow(false);
+    renderOps();
+    rows[0].inp.focus();
+  });
+  copyIn.addEventListener("click", function () { copyText(copyIn, lastIn, "Copiar pulgadas"); });
+  copyMm.addEventListener("click", function () { copyText(copyMm, lastMm, "Copiar mm"); });
+  fracSel.addEventListener("change", renderOps);
+
+  // Los dos selectores de decimales se mantienen iguales
+  function syncDec(v) { dec.value = v; dec2.value = v; renderConv(); renderOps(); }
+  dec.addEventListener("change", function () { syncDec(dec.value); });
+  dec2.addEventListener("change", function () { syncDec(dec2.value); });
+
+  // ---------- Inicio ----------
+  addRow(false);
+  addRow(false);
   applyMode();
+  renderOps();
+  entrada.focus();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {

@@ -1,4 +1,4 @@
-const CACHE = "pulg2mm-v1";
+const CACHE = "pulg2mm-v2";
 const ARCHIVOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
